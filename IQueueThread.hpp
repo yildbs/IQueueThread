@@ -70,7 +70,6 @@ public:
 			}
 			this->queue.push(t);
 			this->mtx_queue.unlock();
-			this->WakeUpBlockedThread();
 		}
 		return popped;
 	}
@@ -126,10 +125,6 @@ public:
     virtual void Run() = 0;
 
 private:
-	//void Lock() {
-	//	this->mtx.lock();
-	//}
-
 	void Join() {
 		for (auto& thread : threads) {
 			thread.join();
@@ -142,30 +137,6 @@ private:
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 	}
-	void WakeUpBlockedThread() {
-		if (this->mtx.try_lock() == false) {
-			this->mtx.unlock();
-			for (;this->blocked;) {
-				this->Sleep(1);
-			}
-			this->mtx.lock();
-		}
-	}
-	void Block(int wait_until_ms=0) {
-		if (this->enabled){
-			this->blocked = true;
-			if (wait_until_ms > 0) {
-				if (this->mtx.try_lock_for(std::chrono::milliseconds(wait_until_ms))) {
-					this->mtx.unlock();
-				}
-			}
-			else { // Wait until acquire mutex
-				this->mtx.lock();
-				this->mtx.unlock();
-			}
-			this->blocked = false;
-		}
-	}
 
 protected:
 	bool started;
@@ -176,7 +147,6 @@ protected:
     std::vector<std::thread> threads;
     bool enabled;
 	std::queue<InputClass> queue;
-	std::timed_mutex mtx;
 	std::timed_mutex mtx_queue;
 
 private:
